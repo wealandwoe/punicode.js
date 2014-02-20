@@ -1,0 +1,221 @@
+<!doctype html>
+<head>
+<meta charset="UTF-8">
+<title>js punycode test</title>
+<script type="text/javascript" src="../jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="../utils.js"></script>
+<!-- Character Encoding -->
+<script type="text/javascript" src="./ecl_array.js"></script>
+<script type="text/javascript" src="./punycode.js"></script>
+
+<script type="text/javascript">
+//<![CDATA[
+var bytesize = function(str) {
+	return Utils.ByteArray.fromText(str).length;
+};
+var click_convert = function(code) {
+	var stat = {}, str=$("#ta").val(), params=$("input[name='params']:checked").val(),
+			t=new Utils.Timer(), msec, i, iter=$("#iter").val()||1, r;
+	$("#ta2").val("... processing ...");
+	stat["ic"] = str.length, stat["ib"] = bytesize(str);
+	t.start()
+	for(i=0;i<iter;i++) {
+		r = Punycode.encode(str, Punycode[params+"Params"]);
+	}
+	t.stop();
+	msec = t.getTime();
+	if (r>0) {r=Punycode.StatusMessage[r];r="("+r[0]+":"+r[1]+")";}
+	stat["oc"] = r.length, stat["ob"] = bytesize(r);
+	$("#ta2").val(r);
+	$("#tastat").html(
+		stat["ic"]+"chars("+stat["ib"]+"bytes)" +
+		" =&gt; "+stat["oc"]+"chars("+stat["ob"]+"bytes, "+(Math.floor(stat["ob"]*10000/stat["ib"])/100)+"%) ["+msec+"msec, "+(Math.floor(iter*100000/msec)/100)+"cps]"
+	);
+};
+var click_convert2 = function(code) {
+	var stat = {}, str=$("#ta2").val(), params=$("input[name='params']:checked").val(),
+			t=new Utils.Timer(), msec, i, iter=$("#iter").val()||1, r;
+	$("#ta").val("... processing ...");
+	stat["ic"] = str.length, stat["ib"] = bytesize(str);
+	t.start()
+	for(i=0;i<iter;i++) {
+		r = Punycode.decode(str, Punycode[params+"Params"]);
+	}
+	t.stop();
+	msec = t.getTime();
+	if (r>0) {r=Punycode.StatusMessage[r];r="("+r[0]+":"+r[1]+")";}
+	stat["oc"] = r.length, stat["ob"] = bytesize(r);
+	$("#ta").val(r);
+	$("#ta2stat").html(
+		stat["ic"]+"chars("+stat["ib"]+"bytes)" +
+		" =&gt; "+stat["oc"]+"chars("+stat["ob"]+"bytes, "+(Math.floor(stat["ob"]*10000/stat["ib"])/100)+"%) ["+msec+"msec, "+(Math.floor(iter*100000/msec)/100)+"cps]"
+	);
+}
+var setSample = function() {
+	$("#ta").val($("body").text());
+	return;
+};
+
+$(function(){
+	if ($("#ta").val()=="") {setSample();}
+});
+//-->
+</script>
+<style type="text/css">
+<!--
+pre {
+	margin:4px;
+	padding:4px;
+}
+blockquote pre.code {
+	color:#000;
+	background-color:#EFEFEF;
+	font-family:monospace;
+	margin:0px;
+	padding:4px;
+}
+blockquote {
+	color:#000;
+	background-color:#FFFFEF;
+	border:1px solid #999;
+}
+span.comment {
+	color:#090;
+}
+td{text-align:right;}
+tr.column>td{background-color:#CCF;font-weight:bold;text-align:center;}
+td.libname{font-family:monospace;}
+td.invalid {color:#000;background-color:#CCC;}
+td.fast {color:#F00;font-weight:bold;}
+td.failed{text-decoration:line-through}
+td.slow {color:#00C;}
+dd {margin-bottom: 10px;}
+-->
+</style>
+</head>
+<body>
+
+<h1>Punycodeのjavascript実装と変換テスト</h1>
+<h2>概要</h2>
+<p>
+Punycode変換をjavascriptで実装した
+</p>
+<blockquote><pre class="code">var encoded = Punycode.encode("ぴゅにこーど");<span class="comment">//=&gt; &quot;28j1be9azfq9a&quot;</span>
+var decoded = Punycode.decode(encoded);
+decoded==&quot;ぴゅにこーど&quot; <span class="comment">//=&gt; true</span>
+encoded = Punycode.encode(&quot;Punycode変換・逆変換&quot;); <span class="comment"> //=&gt; &quot;Punycode-wg5gy946aba2534aca0149m&quot;</span>
+</pre></blockquote>
+<p>
+以下を参考にした
+</p>
+<ul>
+<li>Punycode - Wikipedia <a href="http://ja.wikipedia.org/wiki/Punycode">http://ja.wikipedia.org/wiki/Punycode</a></li>
+<li>rfc3492日本語訳 <a href="http://www.jdna.jp/survey/rfc/rfc3492j.html">http://www.jdna.jp/survey/rfc/rfc3492j.html</a></li>
+<li>日本語JPドメイン名のPunycode変換・逆変換 <a href="http://punycode.jp/">http://punycode.jp/</a></li>
+<li>Adam M. Costello - Internationalized Domain Names (IDN) <a href="http://www.nicemice.net/idn/">http://www.nicemice.net/idn/</a></li>
+</ul>
+
+<p>
+最後、Punycodeの発案者のサイトに最新のpunycode.cのサンプルがあり大いに参考にした。
+RFC3492日本語訳のcのコードには抜けがあるので注意。
+</p>
+
+<h2>検証</h2>
+<h3>環境</h3>
+<pre>OS: Windows7 Professional 64bit
+ブラウザ: Firefox 27.0
+</pre>
+
+<h3>実験結果</h3>
+<p>
+Punycodeをjavascriptに移植してみて以下がわかった
+</p>
+<ol>
+<li>国際化URLの為の仕様だとおもっていたがURLには使用できない文字でもエンコード可能</li>
+<li>とはいえ、ASCII(0x80以下)はスルーするので文字以外には向かないかもしれない</li>
+<li>ASCIIにエスケープしているがバイトサイズで比較しても元と同じかより小さくなることも</li>
+<li>処理は複雑で割り算を多用していることもあり時間がかかる</li>
+<li>国際化URLとして使うには使用禁止文字、大文字小文字の同一化、prefix(xn--)追加など工夫が必要</li>
+</ol>
+<p>
+</p>
+<p>Punycode内部で利用しているBootstringというアルゴリズムを応用すれば
+36字(A-Z0-9)以上の文字種でエンコードが可能になる
+</p>
+<blockquote><pre>
+   Punycodeは、Bootstringと呼ばれる、より一般的なアルゴリズムの適用事例
+   (instance)である。このアルゴリズムは、より大きな文字集合に属する
+   コードポイントの並びを、小さな"基本(basic)"コードポイントの集合に
+   含まれるコードポイントの並びによって一意に表現可能にするものである。
+   Punycodeは、Bootstringの特定のパラメーター値をIDNA向けに適切に設定した
+   ものである。
+</pre></blockquote>
+<p>
+試しにBase64([A-Za-z0-9+/])とBase85([0-9A-Za-z!#$%&amp;()*+-;&lt;=&gt;?@^_`{|}~])で作成してみた
+</p>
+<blockquote><pre class="code">
+var str = "Punycodeのjavascript実装と変換テスト";
+Punycode.encode(str,Punycode.Params);       <span class="comment"> //=&gt; &quot;Punycodejavascript-ei4qnd68efitb5631q2rna9p4c6j0o&quot;</span>
+Punycode.encode(str,Punycode.Base64Params); <span class="comment"> //=&gt; &quot;Punycodejavascript-8s6A4Bu3AxEvA7/uVqKE/dU8izB&quot;</span>
+Punycode.encode(str,Punycode.Base85Params); <span class="comment"> //=&gt; &quot;Punycodejavascript.I2Xg1|lv3l0(%)D~a2g`Dd(j&quot;</span>
+
+<span class="comment">// ecl.js の JCT11280(JIS-UNICODE変換テーブル)でテスト</span>
+//JCT11280.length; <span class="comment"> //=&gt; 11280 (chars)</span>
+//Utils.ByteArray.fromText(JCT11280).length; <span class="comment"> //=&gt; 33718 (bytes)</span>
+//Punycode.encode(JCT11280).length; <span class="comment"> //=&gt; 31455 (bytes) 93.3%</span>
+//Punycode.encode(JCT11280,Punycode.Base64Params).length; <span class="comment"> //=&gt; 29584 (bytes) 87.7%</span>
+//Punycode.encode(JCT11280,Punycode.Base85Params).length; <span class="comment"> //=&gt; 28565 (bytes) 84.7%</span>
+</pre></blockquote>
+
+<p>
+パラメータのせいもあるかもしれないが、文字種が増えても思った以上には縮小されなかった。
+36種類→85種類で236%の増加だが、縮小率は93.3%→84.7%で10%程しか差がない。
+</p>
+
+
+<h3>考察</h3>
+<p>
+Bootstringの仕組みは面白く、変換後のサイズも小さいが処理が遅いのが気になる。
+</p>
+
+<hr>
+<h2>実験フォーム</h2>
+
+<form name="form1">
+<dl>
+
+<dt>繰り返し数</dt>
+<dd>
+	<select name="iter" id="iter">
+		<option value="1" selected>1</option>
+		<option value="100">100</option>
+		<option value="1000">1000</option>
+		<option value="10000">10000</option>
+	</select>
+</dd>
+<dt>Bootstring設定</dt>
+<dd>
+	<label><input type="radio" name="params" value="" checked>Punycode</label>
+	<label><input type="radio" name="params" value="Base64">Base64</label>
+	<label><input type="radio" name="params" value="Base85">Base85</label>
+</dd>
+<dt>INPUT
+  <input type="button" onclick="setSample();" value="サンプル文字列をセット">
+</dt>
+<dd>
+  <textarea id="ta" name="ta" cols="80" rows="5"></textarea><br>
+  <input type="button" name="" id="" onclick="click_convert('PUNYCODE');" value="PUNYCODEに変換">
+  <span id="tastat"></span>
+</dd>
+
+<dt>OUTPUT
+</dt>
+<dd>
+  <textarea id="ta2" name="ta2" cols="80" rows="5"></textarea><br>
+  <input type="button" name="" id="" onclick="click_convert2('UNICODE');" value="JS文字列に変換">
+  <span id="ta2stat"></span>
+</dd>
+</form>
+
+</body>
+</html>
